@@ -34,4 +34,15 @@ assert(positionDatasets.length === 4, 'interpolated position chart must use four
 assert(positionDatasets.map((dataset) => dataset.label).join(',') === 'Interpolated x,Interpolated y,Measured x,Measured y', 'position datasets must distinguish raw and interpolated samples');
 assert(positionDatasets[2].showLine === false && positionDatasets[2].pointRadius === 3, 'measured positions must be prominent unconnected points');
 
+const main = readFileSync(new URL('../js/main.js', import.meta.url), 'utf8');
+for (const fragment of [
+  'function resetInterpolation()',
+  'function refreshAnalysis()',
+  "e['interpolation-enabled'].addEventListener('change'",
+  "e['interpolation-points'].addEventListener('input'",
+  'selectAnalysisPositions(state.positions, interpolation.enabled, interpolation.points)',
+]) {
+  assert(main.includes(fragment), `missing interpolation lifecycle wiring: ${fragment}`);
+}
+
 console.log('UI structure checks: passed');

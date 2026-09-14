@@ -1,24 +1,38 @@
 (() => {
-const { Stage, state, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, rescalePositions, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
+const { Stage, state, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, rescalePositions, selectAnalysisPositions, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
 console.info('[T2G:App] boot', { href: location.href, cvType: typeof window.cv, t2gKeys: Object.keys(window.T2G) });
 
 const ui = makeUI();
 const { elements: e } = ui;
 const workCanvas = document.createElement('canvas');
 let mode = null, dragStart = null, cancelRequested = false, motion = null;
+let interpolation = { enabled: false, points: 1 };
 
 function setMode(next) { mode = next; e.overlay.classList.toggle('is-interactive', Boolean(next)); }
 function resetAnalysis() { motion = null; e.mass.value = ''; e['graph-status'].textContent = 'Finish tracking to see graphs.'; }
+function resetInterpolation() {
+  interpolation = { enabled: false, points: 1 };
+  e['interpolation-enabled'].checked = false;
+  e['interpolation-points'].value = '1';
+  e['interpolation-points-value'].value = '1';
+  e['interpolation-points-value'].textContent = '1';
+  e['interpolation-status'].textContent = 'Off — using measured positions.';
+}
+function refreshAnalysis() {
+  if (state.positions.length < 3) return;
+  const analysisPositions = selectAnalysisPositions(state.positions, interpolation.enabled, interpolation.points);
+  motion = deriveMotion(analysisPositions);
+  state.stage = Stage.GRAPH;
+  renderMotion(state.positions, analysisPositions, motion.velocity, motion.acceleration, interpolation.enabled);
+  e['interpolation-status'].textContent = interpolation.enabled ? `${interpolation.points} points/frame — analyzing ${analysisPositions.length} positions.` : `Off — using ${state.positions.length} measured positions.`;
+  const mass = Number(e.mass.value);
+  if (mass > 0) { renderEnergy(deriveEnergy(motion.velocity, mass)); e['graph-status'].textContent = 'Energy graph updated from the selected position series.'; }
+  else e['graph-status'].textContent = 'Enter a mass to show energy.';
+}
 function refreshScaledAnalysis() {
   if (state.positions.length < 2 || !state.scale) return;
   state.positions = rescalePositions(state.positions, state.scale);
-  motion = deriveMotion(state.positions);
-  if (state.positions.length < 3) return;
-  state.stage = Stage.GRAPH;
-  renderMotion(state.positions, motion.velocity, motion.acceleration);
-  const mass = Number(e.mass.value);
-  if (mass > 0) renderEnergy(deriveEnergy(motion.velocity, mass));
-  e['graph-status'].textContent = 'Graphs updated with the current scale.';
+  refreshAnalysis();
 }
 function showTab(name) {
   const graph = name === 'graph' && state.stage >= Stage.GRAPH;
@@ -42,13 +56,13 @@ function readRange() {
 }
 function updateRange() {
   const range = readRange(); if (!range) return false;
-  state.range = range; clearTracking(); resetAnalysis(); showTab('track'); setRangeStatus(); ui.refresh(); return true;
+  state.range = range; clearTracking(); resetAnalysis(); resetInterpolation(); showTab('track'); setRangeStatus(); ui.refresh(); return true;
 }
 async function seekTo(time) { e.video.pause(); if (Math.abs(e.video.currentTime - time) > .0001) { e.video.currentTime = time; await waitForSeek(e.video); } }
 
 e['video-file'].addEventListener('change', () => {
   const file = e['video-file'].files[0]; if (!file) return;
-  loadVideo(URL.createObjectURL(file)); resetAnalysis(); setMode(null); showTab('track');
+  loadVideo(URL.createObjectURL(file)); resetAnalysis(); resetInterpolation(); setMode(null); showTab('track');
   e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded.`; e['scale-status'].textContent = 'Choose a reference frame, then select two endpoints.'; ui.refresh();
 });
 e.video.addEventListener('loadedmetadata', () => { console.info('[T2G:Video] metadata loaded', { duration: e.video.duration, width: e.video.videoWidth, height: e.video.videoHeight }); configureVideo(); ui.refresh(); });
@@ -68,7 +82,7 @@ e['analysis-start'].addEventListener('change', updateRange); e['analysis-end'].a
 e['track-tab'].addEventListener('click', () => showTab('track')); e['graph-tab'].addEventListener('click', () => showTab('graph'));
 e['select-roi'].addEventListener('click', async () => {
   if (!updateRange()) return;
-  await seekTo(state.range.start); clearTracking(); resetAnalysis(); setMode('roi'); e['track-status'].textContent = 'Draw a rectangle around the object at the analysis start frame.'; ui.refresh();
+  await seekTo(state.range.start); clearTracking(); resetAnalysis(); resetInterpolation(); setMode('roi'); e['track-status'].textContent = 'Draw a rectangle around the object at the analysis start frame.'; ui.refresh();
 });
 e.overlay.addEventListener('pointerdown', (event) => {
   if (state.tracking || !mode) return;
@@ -83,16 +97,27 @@ e['start-tracking'].addEventListener('click', async () => {
   console.info('[T2G:Track] button clicked', { stage: state.stage, hasScale: Boolean(state.scale), hasRoi: Boolean(state.roi), tracking: state.tracking, requestedRange, storedRange: state.range, cvType: typeof window.cv });
   if (!state.scale || !state.roi || state.tracking || !requestedRange) return;
   if (requestedRange.start !== state.range.start || requestedRange.end !== state.range.end) { e['track-status'].textContent = 'The interval changed. Select the ROI again at the new start frame.'; return; }
-  state.positions = []; state.tracking = true; cancelRequested = false; e['tracking-progress'].hidden = false; e['tracking-progress'].value = 0; e['track-status'].textContent = 'Tracking frames…'; ui.refresh();
+  resetInterpolation(); state.positions = []; state.tracking = true; cancelRequested = false; e['tracking-progress'].hidden = false; e['tracking-progress'].value = 0; e['track-status'].textContent = 'Tracking frames…'; ui.refresh();
   try {
     await trackTemplate({ video: e.video, frameCanvas: workCanvas, roi: state.roi, startTime: state.range.start, endTime: state.range.end, cancelled: () => cancelRequested, onProgress: (v) => { e['tracking-progress'].value = v; }, onSample: ({ t, px, py, confidence }) => { if (confidence < .2) return; const first = state.positions[0] ?? { px, py }; state.positions.push({ t, px, py, x: (px - first.px) * state.scale, y: -(py - first.py) * state.scale }); ui.redraw(); } });
     if (cancelRequested) { e['track-status'].textContent = 'Tracking cancelled; result discarded.'; state.positions = []; }
     else if (state.positions.length < 3) { e['track-status'].textContent = 'Too few confident samples. Try a more distinctive, tighter ROI.'; }
-    else { motion = deriveMotion(state.positions); state.stage = Stage.GRAPH; renderMotion(state.positions, motion.velocity, motion.acceleration); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; e['graph-status'].textContent = 'Enter a mass to show energy.'; showTab('graph'); }
+    else { refreshAnalysis(); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; showTab('graph'); }
   } catch (error) { state.positions = []; e['track-status'].textContent = error.message; }
   finally { state.tracking = false; e['tracking-progress'].hidden = true; ui.refresh(); }
 });
 e['cancel-tracking'].addEventListener('click', () => { cancelRequested = true; e['track-status'].textContent = 'Cancelling after the current frame…'; });
-e.mass.addEventListener('input', () => { const mass = Number(e.mass.value); if (motion && mass > 0) { renderEnergy(deriveEnergy(motion.velocity, mass)); e['graph-status'].textContent = 'Energy graph updated from measured velocity and midpoint position.'; } });
+e['interpolation-enabled'].addEventListener('change', () => {
+  interpolation.enabled = e['interpolation-enabled'].checked;
+  ui.refresh();
+  refreshAnalysis();
+});
+e['interpolation-points'].addEventListener('input', () => {
+  interpolation.points = Number(e['interpolation-points'].value);
+  e['interpolation-points-value'].value = String(interpolation.points);
+  e['interpolation-points-value'].textContent = String(interpolation.points);
+  refreshAnalysis();
+});
+e.mass.addEventListener('input', () => { if (motion) refreshAnalysis(); });
 ui.refresh();
 })();
