@@ -56,10 +56,21 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
     onProgress(0);
     if (!video.requestVideoFrameCallback) throw new Error('This browser does not provide decoded video frame callbacks.');
     await new Promise((resolve, reject) => {
+      const resumeVideo = () => {
+        Promise.resolve(video.play()).catch((error) => {
+          video.pause();
+          reject(error);
+        });
+      };
       const processFrame = (_now, metadata) => {
         const mediaTime = metadata.mediaTime;
+        video.pause();
         if (cancelled() || mediaTime > endTime) { video.pause(); resolve(); return; }
-        if (mediaTime <= lastMediaTime) { video.requestVideoFrameCallback(processFrame); return; }
+        if (mediaTime <= lastMediaTime) {
+          video.requestVideoFrameCallback(processFrame);
+          resumeVideo();
+          return;
+        }
         try {
           lastMediaTime = mediaTime;
           frameToCanvas(video, frameCanvas);
@@ -78,10 +89,11 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
           result.delete(); search.delete(); frame.delete();
           onProgress((mediaTime - startTime) / (endTime - startTime));
           video.requestVideoFrameCallback(processFrame);
+          resumeVideo();
         } catch (error) { video.pause(); reject(error); }
       };
       video.requestVideoFrameCallback(processFrame);
-      Promise.resolve(video.play()).catch(reject);
+      resumeVideo();
     });
   } finally { template.delete(); }
 }

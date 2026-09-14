@@ -2,16 +2,17 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const callbacks = [];
+const actions = [];
 const makeFrame = () => ({ cols: 100, rows: 100, roi: () => ({ cols: 10, rows: 10, clone: () => ({ cols: 10, rows: 10, delete() {} }), delete() {} }), delete() {} });
 const context = vm.createContext({
-  window: { T2G: { frameToCanvas() {}, waitForSeek: async () => {} }, cv: { Mat: function Mat() { this.delete = () => {}; }, Rect: function Rect() {}, imread: makeFrame, matchTemplate() {}, minMaxLoc: () => ({ maxLoc: { x: 0, y: 0 }, maxVal: 1 }), TM_CCOEFF_NORMED: 1 } },
+  window: { T2G: { frameToCanvas() {}, waitForSeek: async () => {} }, cv: { Mat: function Mat() { this.delete = () => {}; }, Rect: function Rect() {}, imread: makeFrame, matchTemplate() { actions.push('match'); }, minMaxLoc: () => ({ maxLoc: { x: 0, y: 0 }, maxVal: 1 }), TM_CCOEFF_NORMED: 1 } },
   location: { href: 'test://t2g' }, console: { info() {}, error() {} }, setTimeout, clearTimeout,
 });
 vm.runInContext(readFileSync('js/tracker.js', 'utf8'), context, { filename: 'js/tracker.js' });
 
 const video = {
-  duration: 1, currentTime: 0, pause() {}, play: async () => {},
-  requestVideoFrameCallback(callback) { callbacks.push(callback); return callbacks.length; },
+  duration: 1, currentTime: 0, pause() { actions.push('pause'); }, play: async () => { actions.push('play'); },
+  requestVideoFrameCallback(callback) { actions.push('request'); callbacks.push(callback); return callbacks.length; },
 };
 const samples = [];
 const tracking = context.window.T2G.trackTemplate({
@@ -21,8 +22,10 @@ const tracking = context.window.T2G.trackTemplate({
 
 for (let i = 0; i < 5; i += 1) await Promise.resolve();
 if (callbacks.length !== 1) throw new Error('tracker must request the next decoded video frame');
+actions.length = 0;
 callbacks.shift()(0, { mediaTime: .033 });
 await Promise.resolve();
+if (actions.join(',') !== 'pause,match,request,play') throw new Error(`expected pause-match-resume ordering, got ${actions.join(',')}`);
 callbacks.shift()(0, { mediaTime: .066 });
 await Promise.resolve();
 callbacks.shift()(0, { mediaTime: .101 });
