@@ -1,3 +1,4 @@
+(() => {
 const Stage = Object.freeze({ EMPTY: 0, SCALE: 1, TRACK: 2, GRAPH: 3 });
 
 const state = {
@@ -10,3 +11,4 @@ function clearScale() { state.scale = null; state.scalePoints = []; clearTrackin
 function loadVideo(url) { if (state.videoUrl) URL.revokeObjectURL(state.videoUrl); state.videoUrl = url; state.scale = null; state.scalePoints = []; state.roi = null; state.positions = []; state.tracking = false; state.range = { start: 0, end: 0 }; state.stage = Stage.SCALE; }
 
 window.T2G = { ...(window.T2G ?? {}), Stage, state, clearTracking, clearScale, loadVideo };
+})();

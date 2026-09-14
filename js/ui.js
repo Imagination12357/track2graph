@@ -1,3 +1,4 @@
+(() => {
 const { Stage, state } = window.T2G;
 
 function makeUI() {
@@ -26,3 +27,4 @@ function makeUI() {
 }
 
 window.T2G = { ...(window.T2G ?? {}), makeUI };
+})();

@@ -1,3 +1,4 @@
+(() => {
 function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); }
 
 async function getOpenCv() {
@@ -59,3 +60,4 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
 }
 
 window.T2G = { ...(window.T2G ?? {}), trackTemplate };
+})();

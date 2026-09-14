@@ -1,3 +1,4 @@
+(() => {
 const { Stage, state, clearScale, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
 
 const ui = makeUI();
@@ -78,3 +79,4 @@ e['start-tracking'].addEventListener('click', async () => {
 e['cancel-tracking'].addEventListener('click', () => { cancelRequested = true; e['track-status'].textContent = 'Cancelling after the current frame…'; });
 e.mass.addEventListener('input', () => { const mass = Number(e.mass.value); if (motion && mass > 0) { renderEnergy(deriveEnergy(motion.velocity, mass)); e['graph-status'].textContent = 'Energy graph updated from measured velocity and midpoint position.'; } });
 ui.refresh();
+})();

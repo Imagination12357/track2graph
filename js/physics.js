@@ -1,3 +1,4 @@
+(() => {
 function deriveMotion(positions) {
   const velocity = [];
   for (let i = 0; i < positions.length - 1; i += 1) {
@@ -25,3 +26,4 @@ function deriveEnergy(velocity, mass) {
 }
 
 window.T2G = { ...(window.T2G ?? {}), deriveMotion, deriveEnergy };
+})();

@@ -1,3 +1,4 @@
+(() => {
 let charts = {};
 const palette = ['#0d6efd', '#d63384', '#198754'];
 function plot(id, datasets) {
@@ -13,3 +14,4 @@ function renderMotion(positions, velocity, acceleration) {
 function renderEnergy(energy) { plot('energy-chart', [{ label: 'Potential U', data: series(energy, 'potential') }, { label: 'Kinetic K', data: series(energy, 'kinetic') }, { label: 'Mechanical E', data: series(energy, 'mechanical') }]); }
 
 window.T2G = { ...(window.T2G ?? {}), renderMotion, renderEnergy };
+})();
