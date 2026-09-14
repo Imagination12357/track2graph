@@ -11,5 +11,6 @@ assert(html.includes('id="track-panel"') && html.includes('id="graph-panel"'), '
 assert(/#overlay\s*\{[^}]*pointer-events:\s*none;/.test(css), 'overlay must pass through pointer events when selection is inactive');
 assert(!html.includes('type="module"'), 'the app must not rely on ES modules under file URLs');
 assert(html.includes('./js/state.js') && html.includes('./js/main.js'), 'classic scripts must load the application in dependency order');
+assert(html.includes('@techstark/opencv-js@4.10.0-release.1/dist/opencv.js'), 'OpenCV must use the package browser bundle path');
 
 console.log('UI structure checks: passed');

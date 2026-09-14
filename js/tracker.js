@@ -3,20 +3,34 @@ function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); 
 
 async function getOpenCv() {
   const deadline = Date.now() + 15000;
+  console.info('[T2G:OpenCV] wait start', { href: location.href, cvType: typeof window.cv, cvPresent: Boolean(window.cv) });
   while (!window.cv && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 50));
-  if (!window.cv) throw new Error('OpenCV.js could not load. Check your network connection and reload.');
+  if (!window.cv) {
+    console.error('[T2G:OpenCV] global cv absent after timeout', { waitedMs: 15000, href: location.href });
+    throw new Error('OpenCV.js could not load. Check your network connection and reload.');
+  }
+  console.info('[T2G:OpenCV] global cv found', { cvType: typeof window.cv, thenable: Boolean(window.cv?.then), hasMat: Boolean(window.cv?.Mat) });
   const cv = await window.cv;
+  console.info('[T2G:OpenCV] cv promise/value resolved', { hasMat: Boolean(cv?.Mat), keys: cv ? Object.keys(cv).slice(0, 12) : [] });
   if (cv.Mat) return cv;
   await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('OpenCV.js took too long to initialize. Reload and try again.')), Math.max(1, deadline - Date.now()));
+    const remainingMs = Math.max(1, deadline - Date.now());
+    console.info('[T2G:OpenCV] waiting for onRuntimeInitialized', { remainingMs, existingCallback: typeof cv.onRuntimeInitialized });
+    const timeout = setTimeout(() => {
+      console.error('[T2G:OpenCV] runtime initialization timeout', { hasMat: Boolean(cv.Mat), keys: Object.keys(cv).slice(0, 12) });
+      reject(new Error('OpenCV.js took too long to initialize. Reload and try again.'));
+    }, remainingMs);
     const previous = cv.onRuntimeInitialized;
-    cv.onRuntimeInitialized = () => { previous?.(); clearTimeout(timeout); resolve(); };
+    cv.onRuntimeInitialized = () => { console.info('[T2G:OpenCV] onRuntimeInitialized fired', { hasMat: Boolean(cv.Mat) }); previous?.(); clearTimeout(timeout); resolve(); };
   });
+  console.info('[T2G:OpenCV] ready after runtime callback', { hasMat: Boolean(cv.Mat) });
   return cv;
 }
 
 async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSample, onProgress, cancelled }) {
+  console.info('[T2G:Tracker] start requested', { startTime, endTime, duration: video.duration, roi });
   const cv = await getOpenCv();
+  console.info('[T2G:Tracker] OpenCV acquired', { hasMat: Boolean(cv.Mat), videoWidth: video.videoWidth, videoHeight: video.videoHeight });
   const { frameToCanvas, waitForSeek } = window.T2G;
   if (!(endTime > startTime && endTime <= video.duration)) throw new Error('Choose a valid analysis interval.');
   video.pause();

@@ -1,5 +1,6 @@
 (() => {
 const { Stage, state, clearScale, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
+console.info('[T2G:App] boot', { href: location.href, cvType: typeof window.cv, t2gKeys: Object.keys(window.T2G) });
 
 const ui = makeUI();
 const { elements: e } = ui;
@@ -39,7 +40,7 @@ e['video-file'].addEventListener('change', () => {
   loadVideo(URL.createObjectURL(file)); resetAnalysis(); setMode(null); showTab('track');
   e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded.`; e['scale-status'].textContent = 'Choose a reference frame, then select two endpoints.'; ui.refresh();
 });
-e.video.addEventListener('loadedmetadata', () => { configureVideo(); ui.refresh(); });
+e.video.addEventListener('loadedmetadata', () => { console.info('[T2G:Video] metadata loaded', { duration: e.video.duration, width: e.video.videoWidth, height: e.video.videoHeight }); configureVideo(); ui.refresh(); });
 e['set-scale'].addEventListener('click', () => { clearScale(); resetAnalysis(); setMode('scale'); e['scale-status'].textContent = 'Click the first endpoint of the known distance.'; ui.refresh(); });
 e['scale-length'].addEventListener('input', ui.refresh);
 e['confirm-scale'].addEventListener('click', () => {
@@ -65,6 +66,7 @@ e.overlay.addEventListener('pointermove', (event) => { if (!dragStart) return; c
 e.overlay.addEventListener('pointerup', (event) => { if (!dragStart) return; e.overlay.releasePointerCapture(event.pointerId); dragStart = null; if (state.roi.width < 8 || state.roi.height < 8) state.roi = null; setMode(null); e['track-status'].textContent = state.roi ? 'ROI selected. Start tracking when ready.' : 'ROI was too small; select it again.'; ui.refresh(); });
 e['start-tracking'].addEventListener('click', async () => {
   const requestedRange = readRange();
+  console.info('[T2G:Track] button clicked', { stage: state.stage, hasScale: Boolean(state.scale), hasRoi: Boolean(state.roi), tracking: state.tracking, requestedRange, storedRange: state.range, cvType: typeof window.cv });
   if (!state.scale || !state.roi || state.tracking || !requestedRange) return;
   if (requestedRange.start !== state.range.start || requestedRange.end !== state.range.end) { e['track-status'].textContent = 'The interval changed. Select the ROI again at the new start frame.'; return; }
   state.positions = []; state.tracking = true; cancelRequested = false; e['tracking-progress'].hidden = false; e['tracking-progress'].value = 0; e['track-status'].textContent = 'Tracking frames…'; ui.refresh();

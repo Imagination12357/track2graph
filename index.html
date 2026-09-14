@@ -7,7 +7,9 @@
     <title>T2G — Track to Graph</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
     <link rel="stylesheet" href="./style.css" />
-    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/opencv.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js"
+      onload="console.info('[T2G:OpenCV script] load', { href: location.href, cvType: typeof window.cv, cvThenable: Boolean(window.cv?.then) })"
+      onerror="console.error('[T2G:OpenCV script] error', { href: location.href, src: this.src })"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script defer src="./js/state.js"></script>
     <script defer src="./js/video.js"></script>
