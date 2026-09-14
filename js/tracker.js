@@ -9,10 +9,15 @@ async function getOpenCv() {
     console.error('[T2G:OpenCV] global cv absent after timeout', { waitedMs: 15000, href: location.href });
     throw new Error('OpenCV.js could not load. Check your network connection and reload.');
   }
-  console.info('[T2G:OpenCV] global cv found', { cvType: typeof window.cv, thenable: Boolean(window.cv?.then), hasMat: Boolean(window.cv?.Mat) });
-  const cv = await window.cv;
+  const rawCv = window.cv;
+  console.info('[T2G:OpenCV] global cv found', { cvType: typeof rawCv, thenable: Boolean(rawCv?.then), hasMat: Boolean(rawCv?.Mat) });
+  if (rawCv.Mat) {
+    console.info('[T2G:OpenCV] ready object accepted without awaiting thenable', { hasMat: true });
+    return { cv: rawCv };
+  }
+  const cv = await rawCv;
   console.info('[T2G:OpenCV] cv promise/value resolved', { hasMat: Boolean(cv?.Mat), keys: cv ? Object.keys(cv).slice(0, 12) : [] });
-  if (cv.Mat) return cv;
+  if (cv.Mat) return { cv };
   await new Promise((resolve, reject) => {
     const remainingMs = Math.max(1, deadline - Date.now());
     console.info('[T2G:OpenCV] waiting for onRuntimeInitialized', { remainingMs, existingCallback: typeof cv.onRuntimeInitialized });
@@ -24,12 +29,12 @@ async function getOpenCv() {
     cv.onRuntimeInitialized = () => { console.info('[T2G:OpenCV] onRuntimeInitialized fired', { hasMat: Boolean(cv.Mat) }); previous?.(); clearTimeout(timeout); resolve(); };
   });
   console.info('[T2G:OpenCV] ready after runtime callback', { hasMat: Boolean(cv.Mat) });
-  return cv;
+  return { cv };
 }
 
 async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSample, onProgress, cancelled }) {
   console.info('[T2G:Tracker] start requested', { startTime, endTime, duration: video.duration, roi });
-  const cv = await getOpenCv();
+  const { cv } = await getOpenCv();
   console.info('[T2G:Tracker] OpenCV acquired', { hasMat: Boolean(cv.Mat), videoWidth: video.videoWidth, videoHeight: video.videoHeight });
   const { frameToCanvas, waitForSeek } = window.T2G;
   if (!(endTime > startTime && endTime <= video.duration)) throw new Error('Choose a valid analysis interval.');
