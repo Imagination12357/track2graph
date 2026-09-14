@@ -223,7 +223,7 @@ for (const fragment of [
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `node test\\position-interpolation.mjs`
+Run: `node test\\ui-structure.mjs`
 
 Expected: failure naming the first missing interpolation lifecycle fragment.
 
