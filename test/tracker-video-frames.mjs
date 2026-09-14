@@ -22,16 +22,17 @@ const tracking = context.window.T2G.trackTemplate({
 
 for (let i = 0; i < 5; i += 1) await Promise.resolve();
 if (callbacks.length !== 1) throw new Error('tracker must request the next decoded video frame');
-if (actions.join(',') !== 'pause,match,request,play') throw new Error(`expected initial matching before playback, got ${actions.join(',')}`);
-if (samples[0].px !== 7 || samples[0].py !== 8 || samples[0].confidence !== 1) throw new Error(`expected first sample from initial OpenCV match, got ${JSON.stringify(samples[0])}`);
+if (actions.join(',') !== 'pause,request,play') throw new Error(`expected playback before the first independent match, got ${actions.join(',')}`);
+if (samples.length !== 0) throw new Error(`expected no self-match sample before playback, got ${JSON.stringify(samples)}`);
 actions.length = 0;
 callbacks.shift()(0, { mediaTime: .033 });
 await Promise.resolve();
 if (actions.join(',') !== 'pause,match,request,play') throw new Error(`expected pause-match-resume ordering, got ${actions.join(',')}`);
+if (samples[0].t !== 0 || samples[0].px !== 7 || samples[0].py !== 8 || samples[0].confidence !== 1) throw new Error(`expected first sample from the first advanced frame, got ${JSON.stringify(samples[0])}`);
 callbacks.shift()(0, { mediaTime: .066 });
 await Promise.resolve();
 callbacks.shift()(0, { mediaTime: .101 });
 await tracking;
 
-if (samples.length !== 3 || samples[0].t !== 0 || samples[1].t !== .033 || samples[2].t !== .066) throw new Error(`expected one sample per decoded frame, got ${JSON.stringify(samples)}`);
+if (samples.length !== 2 || samples[0].t !== 0 || samples[1].t !== .033) throw new Error(`expected one sample per decoded frame after the initial advance, got ${JSON.stringify(samples)}`);
 console.log('Tracker samples each decoded video frame once.');

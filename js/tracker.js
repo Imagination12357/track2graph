@@ -48,16 +48,11 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
   const initialHeight = clamp(Math.round(roi.height), 1, initial.rows - initialY);
   const initialRect = new cv.Rect(initialX, initialY, initialWidth, initialHeight);
   const template = initial.roi(initialRect).clone();
-  const initialResult = new cv.Mat();
-  cv.matchTemplate(initial, template, initialResult, cv.TM_CCOEFF_NORMED);
-  const initialMatch = cv.minMaxLoc(initialResult);
-  let center = { x: initialMatch.maxLoc.x + template.cols / 2, y: initialMatch.maxLoc.y + template.rows / 2 };
-  initialResult.delete();
+  let center = { x: initialX + template.cols / 2, y: initialY + template.rows / 2 };
   initial.delete();
   let lastMediaTime = startTime;
+  let firstSampleTime = null;
   try {
-    onSample({ t: 0, px: center.x, py: center.y, confidence: initialMatch.maxVal });
-    onProgress(0);
     if (!video.requestVideoFrameCallback) throw new Error('This browser does not provide decoded video frame callbacks.');
     await new Promise((resolve, reject) => {
       const resumeVideo = () => {
@@ -89,7 +84,8 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
           cv.matchTemplate(search, template, result, cv.TM_CCOEFF_NORMED);
           const match = cv.minMaxLoc(result);
           center = { x: sx + match.maxLoc.x + template.cols / 2, y: sy + match.maxLoc.y + template.rows / 2 };
-          onSample({ t: mediaTime - startTime, px: center.x, py: center.y, confidence: match.maxVal });
+          if (firstSampleTime === null) firstSampleTime = mediaTime;
+          onSample({ t: mediaTime - firstSampleTime, px: center.x, py: center.y, confidence: match.maxVal });
           result.delete(); search.delete(); frame.delete();
           onProgress((mediaTime - startTime) / (endTime - startTime));
           video.requestVideoFrameCallback(processFrame);
