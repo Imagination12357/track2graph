@@ -7,18 +7,16 @@ function rescalePositions(samples, scale) {
 
 function deriveMotion(positions) {
   const velocity = [];
-  for (let i = 0; i < positions.length - 1; i += 1) {
-    const a = positions[i], b = positions[i + 1], dt = b.t - a.t;
-    if (!(dt > 0)) continue;
-    const vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt;
-    velocity.push({ t: (a.t + b.t) / 2, vx, vy, magnitude: Math.hypot(vx, vy), xMid: (a.x + b.x) / 2, yMid: (a.y + b.y) / 2 });
-  }
   const acceleration = [];
-  for (let i = 0; i < velocity.length - 1; i += 1) {
-    const a = velocity[i], b = velocity[i + 1], dt = b.t - a.t;
-    if (!(dt > 0)) continue;
-    const ax = (b.vx - a.vx) / dt, ay = (b.vy - a.vy) / dt;
-    acceleration.push({ t: (a.t + b.t) / 2, ax, ay, magnitude: Math.hypot(ax, ay) });
+  for (let i = 1; i < positions.length - 1; i += 1) {
+    const previous = positions[i - 1], current = positions[i], next = positions[i + 1];
+    const beforeDt = current.t - previous.t, afterDt = next.t - current.t, totalDt = next.t - previous.t;
+    if (!(beforeDt > 0 && afterDt > 0 && totalDt > 0)) continue;
+    const vx = (next.x - previous.x) / totalDt, vy = (next.y - previous.y) / totalDt;
+    const ax = 2 * ((next.x - current.x) / afterDt - (current.x - previous.x) / beforeDt) / totalDt;
+    const ay = 2 * ((next.y - current.y) / afterDt - (current.y - previous.y) / beforeDt) / totalDt;
+    velocity.push({ t: current.t, vx, vy, magnitude: Math.hypot(vx, vy), xMid: current.x, yMid: current.y });
+    acceleration.push({ t: current.t, ax, ay, magnitude: Math.hypot(ax, ay) });
   }
   return { velocity, acceleration };
 }
