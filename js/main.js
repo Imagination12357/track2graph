@@ -1,5 +1,5 @@
 import { Stage, state, clearScale, clearTracking, loadVideo } from './state.js';
-import { canvasPoint } from './video.js';
+import { canvasPoint, waitForSeek } from './video.js';
 import { trackTemplate } from './tracker.js';
 import { deriveEnergy, deriveMotion } from './physics.js';
 import { renderEnergy, renderMotion } from './charts.js';
@@ -10,19 +10,38 @@ const { elements: e } = ui;
 const workCanvas = document.createElement('canvas');
 let mode = null, dragStart = null, cancelRequested = false, motion = null;
 
-function setMode(next) { mode = next; e.overlay.style.cursor = next ? 'crosshair' : 'default'; }
+function setMode(next) { mode = next; e.overlay.classList.toggle('is-interactive', Boolean(next)); }
 function resetAnalysis() { motion = null; e.mass.value = ''; e['graph-status'].textContent = 'Finish tracking to see graphs.'; }
+function showTab(name) {
+  const graph = name === 'graph' && state.stage >= Stage.GRAPH;
+  e['track-panel'].hidden = graph; e['graph-panel'].hidden = !graph;
+  e['track-tab'].setAttribute('aria-selected', String(!graph)); e['graph-tab'].setAttribute('aria-selected', String(graph));
+}
 function configureVideo() {
   e.overlay.width = e.video.videoWidth; e.overlay.height = e.video.videoHeight;
   workCanvas.width = e.video.videoWidth; workCanvas.height = e.video.videoHeight;
   e['video-stage'].hidden = false;
+  state.range = { start: 0, end: e.video.duration };
+  e['analysis-start'].value = '0'; e['analysis-end'].value = e.video.duration.toFixed(3);
+  e['analysis-start'].max = e.video.duration; e['analysis-end'].max = e.video.duration;
 }
-function actualMeters() { const value = Number(e['scale-length'].value); return value * ({ m: 1, cm: .01, mm: .001 }[e['scale-unit'].value]); }
+function actualMeters() { return Number(e['scale-length'].value) * ({ m: 1, cm: .01, mm: .001 }[e['scale-unit'].value]); }
+function setRangeStatus(message = '') { e['range-status'].textContent = message || `Analyzing ${state.range.start.toFixed(3)} s to ${state.range.end.toFixed(3)} s.`; }
+function readRange() {
+  const start = Number(e['analysis-start'].value), end = Number(e['analysis-end'].value);
+  if (!(start >= 0 && end > start && end <= e.video.duration)) { e['range-status'].textContent = 'End must be after start and within the video duration.'; return null; }
+  return { start, end };
+}
+function updateRange() {
+  const range = readRange(); if (!range) return false;
+  state.range = range; clearTracking(); resetAnalysis(); showTab('track'); setRangeStatus(); ui.refresh(); return true;
+}
+async function seekTo(time) { e.video.pause(); if (Math.abs(e.video.currentTime - time) > .0001) { e.video.currentTime = time; await waitForSeek(e.video); } }
 
 e['video-file'].addEventListener('change', () => {
   const file = e['video-file'].files[0]; if (!file) return;
-  loadVideo(URL.createObjectURL(file)); resetAnalysis(); setMode(null);
-  e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded. Set a scale.`; e['scale-status'].textContent = 'Click “Set scale points”, then click two reference endpoints.'; e['track-status'].textContent = 'Set the scale to unlock tracking.'; ui.refresh();
+  loadVideo(URL.createObjectURL(file)); resetAnalysis(); setMode(null); showTab('track');
+  e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded.`; e['scale-status'].textContent = 'Choose a reference frame, then select two endpoints.'; ui.refresh();
 });
 e.video.addEventListener('loadedmetadata', () => { configureVideo(); ui.refresh(); });
 e['set-scale'].addEventListener('click', () => { clearScale(); resetAnalysis(); setMode('scale'); e['scale-status'].textContent = 'Click the first endpoint of the known distance.'; ui.refresh(); });
@@ -30,10 +49,16 @@ e['scale-length'].addEventListener('input', ui.refresh);
 e['confirm-scale'].addEventListener('click', () => {
   const [a, b] = state.scalePoints, pixels = Math.hypot(b.x - a.x, b.y - a.y), meters = actualMeters();
   if (!(pixels > 0 && meters > 0)) return;
-  state.scale = meters / pixels; state.stage = Stage.TRACK; setMode(null); clearTracking(); resetAnalysis();
-  e['scale-status'].textContent = `Scale set: ${state.scale.toPrecision(5)} m per pixel.`; e['track-status'].textContent = 'Select a tracking ROI.'; ui.refresh();
+  state.scale = meters / pixels; state.stage = Stage.TRACK; setMode(null); clearTracking(); resetAnalysis(); setRangeStatus(); e['track-status'].textContent = 'Choose an analysis interval, then select an ROI.'; ui.refresh();
 });
-e['select-roi'].addEventListener('click', () => { clearTracking(); resetAnalysis(); setMode('roi'); e['track-status'].textContent = 'Drag a rectangle around the object.'; ui.refresh(); });
+e['set-start'].addEventListener('click', () => { e['analysis-start'].value = e.video.currentTime.toFixed(3); updateRange(); });
+e['set-end'].addEventListener('click', () => { e['analysis-end'].value = e.video.currentTime.toFixed(3); updateRange(); });
+e['analysis-start'].addEventListener('change', updateRange); e['analysis-end'].addEventListener('change', updateRange);
+e['track-tab'].addEventListener('click', () => showTab('track')); e['graph-tab'].addEventListener('click', () => showTab('graph'));
+e['select-roi'].addEventListener('click', async () => {
+  if (!updateRange()) return;
+  await seekTo(state.range.start); clearTracking(); resetAnalysis(); setMode('roi'); e['track-status'].textContent = 'Draw a rectangle around the object at the analysis start frame.'; ui.refresh();
+});
 e.overlay.addEventListener('pointerdown', (event) => {
   if (state.tracking || !mode) return;
   const point = canvasPoint(event, e.overlay);
@@ -43,13 +68,15 @@ e.overlay.addEventListener('pointerdown', (event) => {
 e.overlay.addEventListener('pointermove', (event) => { if (!dragStart) return; const point = canvasPoint(event, e.overlay); state.roi = { x: Math.min(dragStart.x, point.x), y: Math.min(dragStart.y, point.y), width: Math.abs(point.x - dragStart.x), height: Math.abs(point.y - dragStart.y) }; ui.redraw(); });
 e.overlay.addEventListener('pointerup', (event) => { if (!dragStart) return; e.overlay.releasePointerCapture(event.pointerId); dragStart = null; if (state.roi.width < 8 || state.roi.height < 8) state.roi = null; setMode(null); e['track-status'].textContent = state.roi ? 'ROI selected. Start tracking when ready.' : 'ROI was too small; select it again.'; ui.refresh(); });
 e['start-tracking'].addEventListener('click', async () => {
-  if (!state.scale || !state.roi || state.tracking) return;
+  const requestedRange = readRange();
+  if (!state.scale || !state.roi || state.tracking || !requestedRange) return;
+  if (requestedRange.start !== state.range.start || requestedRange.end !== state.range.end) { e['track-status'].textContent = 'The interval changed. Select the ROI again at the new start frame.'; return; }
   state.positions = []; state.tracking = true; cancelRequested = false; e['tracking-progress'].hidden = false; e['tracking-progress'].value = 0; e['track-status'].textContent = 'Tracking frames…'; ui.refresh();
   try {
-    await trackTemplate({ video: e.video, frameCanvas: workCanvas, roi: state.roi, cancelled: () => cancelRequested, onProgress: (v) => { e['tracking-progress'].value = v; }, onSample: ({ t, px, py, confidence }) => { if (confidence < .2) return; const first = state.positions[0] ?? { px, py }; state.positions.push({ t, px, py, x: (px - first.px) * state.scale, y: -(py - first.py) * state.scale }); ui.redraw(); } });
+    await trackTemplate({ video: e.video, frameCanvas: workCanvas, roi: state.roi, startTime: state.range.start, endTime: state.range.end, cancelled: () => cancelRequested, onProgress: (v) => { e['tracking-progress'].value = v; }, onSample: ({ t, px, py, confidence }) => { if (confidence < .2) return; const first = state.positions[0] ?? { px, py }; state.positions.push({ t, px, py, x: (px - first.px) * state.scale, y: -(py - first.py) * state.scale }); ui.redraw(); } });
     if (cancelRequested) { e['track-status'].textContent = 'Tracking cancelled; result discarded.'; state.positions = []; }
     else if (state.positions.length < 3) { e['track-status'].textContent = 'Too few confident samples. Try a more distinctive, tighter ROI.'; }
-    else { motion = deriveMotion(state.positions); state.stage = Stage.GRAPH; renderMotion(state.positions, motion.velocity, motion.acceleration); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; e['graph-status'].textContent = 'Enter a mass to show energy.'; }
+    else { motion = deriveMotion(state.positions); state.stage = Stage.GRAPH; renderMotion(state.positions, motion.velocity, motion.acceleration); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; e['graph-status'].textContent = 'Enter a mass to show energy.'; showTab('graph'); }
   } catch (error) { state.positions = []; e['track-status'].textContent = error.message; }
   finally { state.tracking = false; e['tracking-progress'].hidden = true; ui.refresh(); }
 });

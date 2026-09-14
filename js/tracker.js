@@ -2,13 +2,12 @@ import { frameToCanvas, waitForSeek } from './video.js';
 
 function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); }
 
-export async function trackTemplate({ video, frameCanvas, roi, onSample, onProgress, cancelled }) {
+export async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSample, onProgress, cancelled }) {
   const { cv } = window;
   if (!cv?.Mat) throw new Error('OpenCV.js is still loading. Please try again shortly.');
-  const duration = video.duration;
-  if (!(duration > 0)) throw new Error('The video duration is unavailable.');
+  if (!(endTime > startTime && endTime <= video.duration)) throw new Error('Choose a valid analysis interval.');
   video.pause();
-  video.currentTime = 0;
+  video.currentTime = startTime;
   await waitForSeek(video);
   frameToCanvas(video, frameCanvas);
   const initial = cv.imread(frameCanvas);
@@ -25,7 +24,7 @@ export async function trackTemplate({ video, frameCanvas, roi, onSample, onProgr
   try {
     for (let i = 0; i <= sampleCount; i += 1) {
       if (cancelled()) break;
-      const targetTime = duration * i / sampleCount;
+      const targetTime = startTime + (endTime - startTime) * i / sampleCount;
       if (Math.abs(video.currentTime - targetTime) > .0001) { video.currentTime = targetTime; await waitForSeek(video); }
       frameToCanvas(video, frameCanvas);
       const frame = cv.imread(frameCanvas);
@@ -39,7 +38,7 @@ export async function trackTemplate({ video, frameCanvas, roi, onSample, onProgr
       cv.matchTemplate(search, template, result, cv.TM_CCOEFF_NORMED);
       const match = cv.minMaxLoc(result);
       center = { x: sx + match.maxLoc.x + template.cols / 2, y: sy + match.maxLoc.y + template.rows / 2 };
-      onSample({ t: video.currentTime, px: center.x, py: center.y, confidence: match.maxVal });
+      onSample({ t: video.currentTime - startTime, px: center.x, py: center.y, confidence: match.maxVal });
       result.delete(); search.delete(); frame.delete();
       onProgress(i / sampleCount);
       await new Promise((resolve) => requestAnimationFrame(resolve));
