@@ -5,6 +5,38 @@ function rescalePositions(samples, scale) {
   return samples.map((sample) => ({ ...sample, x: (sample.px - origin.px) * scale, y: -(sample.py - origin.py) * scale }));
 }
 
+function interpolatePositions(samples, insertions) {
+  if (!Number.isInteger(insertions) || insertions < 1 || samples.length < 2) return samples;
+  const slope = (left, right, key) => {
+    const dt = right.t - left.t;
+    return dt > 0 ? (right[key] - left[key]) / dt : 0;
+  };
+  const tangent = (index, key) => {
+    if (index === 0) return slope(samples[0], samples[1], key);
+    if (index === samples.length - 1) return slope(samples[index - 1], samples[index], key);
+    return slope(samples[index - 1], samples[index + 1], key);
+  };
+  const output = [{ ...samples[0], interpolated: false }];
+  for (let index = 0; index < samples.length - 1; index += 1) {
+    const left = samples[index], right = samples[index + 1], dt = right.t - left.t;
+    if (dt > 0) {
+      const leftTx = tangent(index, 'x'), leftTy = tangent(index, 'y');
+      const rightTx = tangent(index + 1, 'x'), rightTy = tangent(index + 1, 'y');
+      for (let step = 1; step <= insertions; step += 1) {
+        const u = step / (insertions + 1), u2 = u * u, u3 = u2 * u;
+        const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+        output.push({ t: left.t + dt * u, x: h00 * left.x + h10 * dt * leftTx + h01 * right.x + h11 * dt * rightTx, y: h00 * left.y + h10 * dt * leftTy + h01 * right.y + h11 * dt * rightTy, interpolated: true });
+      }
+    }
+    output.push({ ...right, interpolated: false });
+  }
+  return output;
+}
+
+function selectAnalysisPositions(measured, enabled, insertions) {
+  return enabled ? interpolatePositions(measured, insertions) : measured;
+}
+
 function deriveMotion(positions) {
   const velocity = [];
   const acceleration = [];
@@ -36,5 +68,5 @@ function deriveEnergy(velocity, mass) {
   });
 }
 
-window.T2G = { ...(window.T2G ?? {}), rescalePositions, deriveMotion, deriveEnergy };
+window.T2G = { ...(window.T2G ?? {}), rescalePositions, interpolatePositions, selectAnalysisPositions, deriveMotion, deriveEnergy };
 })();
