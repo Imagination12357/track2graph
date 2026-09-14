@@ -1,10 +1,22 @@
-import { frameToCanvas, waitForSeek } from './video.js';
-
 function clamp(value, low, high) { return Math.max(low, Math.min(value, high)); }
 
-export async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSample, onProgress, cancelled }) {
-  const { cv } = window;
-  if (!cv?.Mat) throw new Error('OpenCV.js is still loading. Please try again shortly.');
+async function getOpenCv() {
+  const deadline = Date.now() + 15000;
+  while (!window.cv && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 50));
+  if (!window.cv) throw new Error('OpenCV.js could not load. Check your network connection and reload.');
+  const cv = await window.cv;
+  if (cv.Mat) return cv;
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('OpenCV.js took too long to initialize. Reload and try again.')), Math.max(1, deadline - Date.now()));
+    const previous = cv.onRuntimeInitialized;
+    cv.onRuntimeInitialized = () => { previous?.(); clearTimeout(timeout); resolve(); };
+  });
+  return cv;
+}
+
+async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSample, onProgress, cancelled }) {
+  const cv = await getOpenCv();
+  const { frameToCanvas, waitForSeek } = window.T2G;
   if (!(endTime > startTime && endTime <= video.duration)) throw new Error('Choose a valid analysis interval.');
   video.pause();
   video.currentTime = startTime;
@@ -45,3 +57,5 @@ export async function trackTemplate({ video, frameCanvas, roi, startTime, endTim
     }
   } finally { template.delete(); }
 }
+
+window.T2G = { ...(window.T2G ?? {}), trackTemplate };

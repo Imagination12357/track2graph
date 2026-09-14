@@ -1,9 +1,4 @@
-import { Stage, state, clearScale, clearTracking, loadVideo } from './state.js';
-import { canvasPoint, waitForSeek } from './video.js';
-import { trackTemplate } from './tracker.js';
-import { deriveEnergy, deriveMotion } from './physics.js';
-import { renderEnergy, renderMotion } from './charts.js';
-import { makeUI } from './ui.js';
+const { Stage, state, clearScale, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
 
 const ui = makeUI();
 const { elements: e } = ui;

@@ -9,5 +9,7 @@ assert(html.includes('id="scale-dialog"'), 'scale dialog is required');
 assert(html.includes('id="analysis-start"') && html.includes('id="analysis-end"'), 'analysis range controls are required');
 assert(html.includes('id="track-panel"') && html.includes('id="graph-panel"'), 'separate track and graph panels are required');
 assert(/#overlay\s*\{[^}]*pointer-events:\s*none;/.test(css), 'overlay must pass through pointer events when selection is inactive');
+assert(!html.includes('type="module"'), 'the app must not rely on ES modules under file URLs');
+assert(html.includes('./js/state.js') && html.includes('./js/main.js'), 'classic scripts must load the application in dependency order');
 
 console.log('UI structure checks: passed');

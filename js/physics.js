@@ -1,4 +1,4 @@
-export function deriveMotion(positions) {
+function deriveMotion(positions) {
   const velocity = [];
   for (let i = 0; i < positions.length - 1; i += 1) {
     const a = positions[i], b = positions[i + 1], dt = b.t - a.t;
@@ -16,10 +16,12 @@ export function deriveMotion(positions) {
   return { velocity, acceleration };
 }
 
-export function deriveEnergy(velocity, mass) {
+function deriveEnergy(velocity, mass) {
   return velocity.map((v) => {
     const kinetic = .5 * mass * (v.vx ** 2 + v.vy ** 2);
     const potential = mass * 9.80665 * v.yMid;
     return { t: v.t, kinetic, potential, mechanical: kinetic + potential };
   });
 }
+
+window.T2G = { ...(window.T2G ?? {}), deriveMotion, deriveEnergy };

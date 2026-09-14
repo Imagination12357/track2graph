@@ -1,6 +1,6 @@
-import { Stage, state } from './state.js';
+const { Stage, state } = window.T2G;
 
-export function makeUI() {
+function makeUI() {
   const $ = (id) => document.getElementById(id);
   const ids = ['video-file', 'video', 'overlay', 'video-stage', 'video-status', 'scale-dialog', 'scale-length', 'scale-unit', 'set-scale', 'confirm-scale', 'scale-status', 'workspace', 'track-tab', 'graph-tab', 'track-panel', 'graph-panel', 'analysis-start', 'analysis-end', 'set-start', 'set-end', 'range-status', 'select-roi', 'start-tracking', 'cancel-tracking', 'tracking-progress', 'track-status', 'graph-status', 'mass'];
   const elements = Object.fromEntries(ids.map((id) => [id, $(id)]));
@@ -24,3 +24,5 @@ export function makeUI() {
   };
   return { elements, redraw, refresh };
 }
+
+window.T2G = { ...(window.T2G ?? {}), makeUI };
