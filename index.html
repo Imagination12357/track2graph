@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Track one object in a video and graph its motion." />
+    <title>T2G — Track to Graph</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <link rel="stylesheet" href="./style.css" />
+    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/opencv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script type="module" src="./js/main.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <hgroup><h1>T2G</h1><p>Track to Graph</p></hgroup>
+        <p class="muted">A local, browser-only 2D motion analysis tool.</p>
+      </header>
+
+      <article>
+        <label for="video-file"><strong>1. Video</strong>
+          <input id="video-file" type="file" accept="video/*" />
+        </label>
+        <p id="video-status" class="status" aria-live="polite">Choose a video to begin.</p>
+        <div class="video-stage" id="video-stage" hidden>
+          <video id="video" controls preload="metadata"></video>
+          <canvas id="overlay" aria-label="Video interaction overlay"></canvas>
+        </div>
+      </article>
+
+      <article id="scale-section" class="locked">
+        <h2>2. Scale</h2>
+        <p>Click the two ends of a known distance in the video, then enter that distance.</p>
+        <div class="grid">
+          <label>Known length <input id="scale-length" type="number" min="0" step="any" placeholder="e.g. 50" /></label>
+          <label>Unit <select id="scale-unit"><option value="m">m</option><option value="cm" selected>cm</option><option value="mm">mm</option></select></label>
+        </div>
+        <button id="set-scale" type="button" disabled>Set scale points</button>
+        <button id="confirm-scale" type="button" disabled>Confirm scale</button>
+        <p id="scale-status" class="status">Load a video first.</p>
+      </article>
+
+      <article id="track-section" class="locked">
+        <h2>3. Track</h2>
+        <p>Draw a box around one distinctive object on the current video frame.</p>
+        <button id="select-roi" type="button" disabled>Select ROI</button>
+        <button id="start-tracking" type="button" disabled>Start tracking</button>
+        <button id="cancel-tracking" type="button" class="secondary" disabled>Cancel</button>
+        <progress id="tracking-progress" value="0" max="1" hidden></progress>
+        <p id="track-status" class="status">Set the scale to unlock tracking.</p>
+      </article>
+
+      <section id="graph-section" class="locked" aria-labelledby="graphs-heading">
+        <h2 id="graphs-heading">4. Analyze</h2>
+        <p id="graph-status" class="status">Finish tracking to see graphs.</p>
+        <article><h3>Position <small>(m)</small></h3><canvas id="position-chart"></canvas></article>
+        <article><h3>Velocity <small>(m/s)</small></h3><canvas id="velocity-chart"></canvas></article>
+        <article><h3>Acceleration <small>(m/s²)</small></h3><canvas id="acceleration-chart"></canvas></article>
+        <article>
+          <h3>Energy <small>(J)</small></h3>
+          <label for="mass">Mass (kg)<input id="mass" type="number" min="0" step="any" placeholder="Enter a positive mass" disabled /></label>
+          <canvas id="energy-chart"></canvas>
+        </article>
+      </section>
+
+      <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No regression or smoothing is applied.</p></details>
+    </main>
+  </body>
+</html>
