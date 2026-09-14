@@ -68,13 +68,26 @@
         </section>
         <section id="graph-panel" hidden aria-labelledby="graphs-heading">
           <p id="graph-status" class="status">Finish tracking to see graphs.</p>
-          <article><h2 id="graphs-heading">Position <small>(m)</small></h2><canvas id="position-chart"></canvas></article>
+          <article>
+            <div id="position-analysis-layout">
+              <div class="position-chart-wrap"><h2 id="graphs-heading">Position <small>(m)</small></h2><canvas id="position-chart"></canvas></div>
+              <section class="interpolation-controls" aria-label="Position interpolation">
+                <h3>Interpolation</h3>
+                <label><input id="interpolation-enabled" type="checkbox" /> Enable interpolation</label>
+                <label>Points inserted per frame interval
+                  <input id="interpolation-points" type="range" min="1" max="10" value="1" disabled />
+                  <output id="interpolation-points-value" for="interpolation-points">1</output>
+                </label>
+                <p id="interpolation-status" class="status">Off — using measured positions.</p>
+              </section>
+            </div>
+          </article>
           <article><h2>Velocity <small>(m/s)</small></h2><canvas id="velocity-chart"></canvas></article>
           <article><h2>Acceleration <small>(m/s²)</small></h2><canvas id="acceleration-chart"></canvas></article>
           <article><h2>Energy <small>(J)</small></h2><label for="mass">Mass (kg)<input id="mass" type="number" min="0" step="any" placeholder="Enter a positive mass" disabled /></label><canvas id="energy-chart"></canvas></article>
         </section>
       </section>
-      <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No regression or smoothing is applied.</p></details>
+      <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No interpolation, regression, or smoothing is applied unless interpolation is explicitly enabled.</p></details>
     </main>
   </body>
 </html>

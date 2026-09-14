@@ -17,3 +17,9 @@ header label { max-width: 34rem; }
 canvas { max-width: 100%; }
 article canvas { max-height: 23rem; }
 small { color: var(--pico-muted-color); font-weight: normal; }
+#position-analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: 1rem; align-items: start; }
+.position-chart-wrap { min-width: 0; }
+.interpolation-controls { padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); }
+.interpolation-controls h3 { margin-bottom: .75rem; }
+.interpolation-controls output { display: block; margin-top: .25rem; color: var(--pico-muted-color); }
+@media (max-width: 48rem) { #position-analysis-layout { grid-template-columns: 1fr; } }
