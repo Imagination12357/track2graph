@@ -39,8 +39,7 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
   const { frameToCanvas, waitForSeek } = window.T2G;
   if (!(endTime > startTime && endTime <= video.duration)) throw new Error('Choose a valid analysis interval.');
   video.pause();
-  video.currentTime = startTime;
-  await waitForSeek(video);
+  if (Math.abs(video.currentTime - startTime) > .0001) { video.currentTime = startTime; await waitForSeek(video); }
   frameToCanvas(video, frameCanvas);
   const initial = cv.imread(frameCanvas);
   const initialX = clamp(Math.round(roi.x), 0, initial.cols - 1);
@@ -51,30 +50,39 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
   const template = initial.roi(initialRect).clone();
   initial.delete();
   let center = { x: roi.x + roi.width / 2, y: roi.y + roi.height / 2 };
-  // These are evenly spaced analysis targets, not an assumed source FPS.
-  const sampleCount = 240;
+  let lastMediaTime = startTime;
   try {
-    for (let i = 0; i <= sampleCount; i += 1) {
-      if (cancelled()) break;
-      const targetTime = startTime + (endTime - startTime) * i / sampleCount;
-      if (Math.abs(video.currentTime - targetTime) > .0001) { video.currentTime = targetTime; await waitForSeek(video); }
-      frameToCanvas(video, frameCanvas);
-      const frame = cv.imread(frameCanvas);
-      const margin = Math.max(60, Math.max(roi.width, roi.height) * 2);
-      const sx = clamp(Math.round(center.x - roi.width / 2 - margin), 0, Math.max(0, frame.cols - template.cols));
-      const sy = clamp(Math.round(center.y - roi.height / 2 - margin), 0, Math.max(0, frame.rows - template.rows));
-      const sw = Math.min(frame.cols - sx, Math.round(template.cols + margin * 2));
-      const sh = Math.min(frame.rows - sy, Math.round(template.rows + margin * 2));
-      const search = frame.roi(new cv.Rect(sx, sy, sw, sh));
-      const result = new cv.Mat();
-      cv.matchTemplate(search, template, result, cv.TM_CCOEFF_NORMED);
-      const match = cv.minMaxLoc(result);
-      center = { x: sx + match.maxLoc.x + template.cols / 2, y: sy + match.maxLoc.y + template.rows / 2 };
-      onSample({ t: video.currentTime - startTime, px: center.x, py: center.y, confidence: match.maxVal });
-      result.delete(); search.delete(); frame.delete();
-      onProgress(i / sampleCount);
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
+    onSample({ t: 0, px: center.x, py: center.y, confidence: 1 });
+    onProgress(0);
+    if (!video.requestVideoFrameCallback) throw new Error('This browser does not provide decoded video frame callbacks.');
+    await new Promise((resolve, reject) => {
+      const processFrame = (_now, metadata) => {
+        const mediaTime = metadata.mediaTime;
+        if (cancelled() || mediaTime > endTime) { video.pause(); resolve(); return; }
+        if (mediaTime <= lastMediaTime) { video.requestVideoFrameCallback(processFrame); return; }
+        try {
+          lastMediaTime = mediaTime;
+          frameToCanvas(video, frameCanvas);
+          const frame = cv.imread(frameCanvas);
+          const margin = Math.max(60, Math.max(roi.width, roi.height) * 2);
+          const sx = clamp(Math.round(center.x - roi.width / 2 - margin), 0, Math.max(0, frame.cols - template.cols));
+          const sy = clamp(Math.round(center.y - roi.height / 2 - margin), 0, Math.max(0, frame.rows - template.rows));
+          const sw = Math.min(frame.cols - sx, Math.round(template.cols + margin * 2));
+          const sh = Math.min(frame.rows - sy, Math.round(template.rows + margin * 2));
+          const search = frame.roi(new cv.Rect(sx, sy, sw, sh));
+          const result = new cv.Mat();
+          cv.matchTemplate(search, template, result, cv.TM_CCOEFF_NORMED);
+          const match = cv.minMaxLoc(result);
+          center = { x: sx + match.maxLoc.x + template.cols / 2, y: sy + match.maxLoc.y + template.rows / 2 };
+          onSample({ t: mediaTime - startTime, px: center.x, py: center.y, confidence: match.maxVal });
+          result.delete(); search.delete(); frame.delete();
+          onProgress((mediaTime - startTime) / (endTime - startTime));
+          video.requestVideoFrameCallback(processFrame);
+        } catch (error) { video.pause(); reject(error); }
+      };
+      video.requestVideoFrameCallback(processFrame);
+      Promise.resolve(video.play()).catch(reject);
+    });
   } finally { template.delete(); }
 }
 
