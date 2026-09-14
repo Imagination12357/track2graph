@@ -48,11 +48,15 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
   const initialHeight = clamp(Math.round(roi.height), 1, initial.rows - initialY);
   const initialRect = new cv.Rect(initialX, initialY, initialWidth, initialHeight);
   const template = initial.roi(initialRect).clone();
+  const initialResult = new cv.Mat();
+  cv.matchTemplate(initial, template, initialResult, cv.TM_CCOEFF_NORMED);
+  const initialMatch = cv.minMaxLoc(initialResult);
+  let center = { x: initialMatch.maxLoc.x + template.cols / 2, y: initialMatch.maxLoc.y + template.rows / 2 };
+  initialResult.delete();
   initial.delete();
-  let center = { x: roi.x + roi.width / 2, y: roi.y + roi.height / 2 };
   let lastMediaTime = startTime;
   try {
-    onSample({ t: 0, px: center.x, py: center.y, confidence: 1 });
+    onSample({ t: 0, px: center.x, py: center.y, confidence: initialMatch.maxVal });
     onProgress(0);
     if (!video.requestVideoFrameCallback) throw new Error('This browser does not provide decoded video frame callbacks.');
     await new Promise((resolve, reject) => {

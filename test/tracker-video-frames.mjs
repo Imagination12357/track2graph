@@ -5,7 +5,7 @@ const callbacks = [];
 const actions = [];
 const makeFrame = () => ({ cols: 100, rows: 100, roi: () => ({ cols: 10, rows: 10, clone: () => ({ cols: 10, rows: 10, delete() {} }), delete() {} }), delete() {} });
 const context = vm.createContext({
-  window: { T2G: { frameToCanvas() {}, waitForSeek: async () => {} }, cv: { Mat: function Mat() { this.delete = () => {}; }, Rect: function Rect() {}, imread: makeFrame, matchTemplate() { actions.push('match'); }, minMaxLoc: () => ({ maxLoc: { x: 0, y: 0 }, maxVal: 1 }), TM_CCOEFF_NORMED: 1 } },
+  window: { T2G: { frameToCanvas() {}, waitForSeek: async () => {} }, cv: { Mat: function Mat() { this.delete = () => {}; }, Rect: function Rect() {}, imread: makeFrame, matchTemplate() { actions.push('match'); }, minMaxLoc: () => ({ maxLoc: { x: 2, y: 3 }, maxVal: 1 }), TM_CCOEFF_NORMED: 1 } },
   location: { href: 'test://t2g' }, console: { info() {}, error() {} }, setTimeout, clearTimeout,
 });
 vm.runInContext(readFileSync('js/tracker.js', 'utf8'), context, { filename: 'js/tracker.js' });
@@ -22,6 +22,8 @@ const tracking = context.window.T2G.trackTemplate({
 
 for (let i = 0; i < 5; i += 1) await Promise.resolve();
 if (callbacks.length !== 1) throw new Error('tracker must request the next decoded video frame');
+if (actions.join(',') !== 'pause,match,request,play') throw new Error(`expected initial matching before playback, got ${actions.join(',')}`);
+if (samples[0].px !== 7 || samples[0].py !== 8 || samples[0].confidence !== 1) throw new Error(`expected first sample from initial OpenCV match, got ${JSON.stringify(samples[0])}`);
 actions.length = 0;
 callbacks.shift()(0, { mediaTime: .033 });
 await Promise.resolve();
