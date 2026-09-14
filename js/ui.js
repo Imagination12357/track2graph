@@ -3,7 +3,7 @@ const { Stage, state } = window.T2G;
 
 function makeUI() {
   const $ = (id) => document.getElementById(id);
-  const ids = ['video-file', 'video', 'overlay', 'video-stage', 'video-status', 'scale-dialog', 'scale-length', 'scale-unit', 'set-scale', 'confirm-scale', 'scale-status', 'workspace', 'track-tab', 'graph-tab', 'track-panel', 'graph-panel', 'analysis-start', 'analysis-end', 'set-start', 'set-end', 'range-status', 'select-roi', 'start-tracking', 'cancel-tracking', 'tracking-progress', 'track-status', 'graph-status', 'mass'];
+  const ids = ['video-file', 'video', 'overlay', 'video-stage', 'video-status', 'scale-card', 'scale-length', 'scale-unit', 'set-scale', 'confirm-scale', 'scale-status', 'workspace', 'track-tab', 'graph-tab', 'track-panel', 'graph-panel', 'analysis-start', 'analysis-end', 'set-start', 'set-end', 'range-status', 'select-roi', 'start-tracking', 'cancel-tracking', 'tracking-progress', 'track-status', 'graph-status', 'mass'];
   const elements = Object.fromEntries(ids.map((id) => [id, $(id)]));
   const redraw = () => {
     const { overlay } = elements, ctx = overlay.getContext('2d'); ctx.clearRect(0, 0, overlay.width, overlay.height); ctx.lineWidth = 3;
@@ -12,9 +12,8 @@ function makeUI() {
     if (state.positions.length) { ctx.fillStyle = '#dc3545'; state.positions.forEach((p) => { ctx.beginPath(); ctx.arc(p.px, p.py, 2, 0, Math.PI * 2); ctx.fill(); }); }
   };
   const refresh = () => {
-    const hasScale = state.stage >= Stage.TRACK, hasGraph = state.stage >= Stage.GRAPH;
-    elements['scale-dialog'].hidden = state.stage !== Stage.SCALE;
-    elements.workspace.hidden = !hasScale;
+    const hasVideo = state.stage >= Stage.SCALE, hasScale = Boolean(state.scale), hasGraph = state.stage >= Stage.GRAPH;
+    elements.workspace.hidden = !hasVideo;
     elements['confirm-scale'].disabled = state.scalePoints.length !== 2 || !(Number(elements['scale-length'].value) > 0);
     elements['select-roi'].disabled = !hasScale || state.tracking;
     elements['start-tracking'].disabled = !state.roi || state.tracking;

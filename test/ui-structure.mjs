@@ -5,7 +5,8 @@ const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 
-assert(html.includes('id="scale-dialog"'), 'scale dialog is required');
+assert(html.includes('id="track-panel"') && html.includes('id="scale-card"'), 'scale controls must live in the Track panel');
+assert(!html.includes('id="scale-dialog"'), 'scale must not block the workspace in a dialog');
 assert(html.includes('id="analysis-start"') && html.includes('id="analysis-end"'), 'analysis range controls are required');
 assert(html.includes('id="track-panel"') && html.includes('id="graph-panel"'), 'separate track and graph panels are required');
 assert(/#overlay\s*\{[^}]*pointer-events:\s*none;/.test(css), 'overlay must pass through pointer events when selection is inactive');

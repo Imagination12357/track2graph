@@ -17,5 +17,3 @@ header label { max-width: 34rem; }
 canvas { max-width: 100%; }
 article canvas { max-height: 23rem; }
 small { color: var(--pico-muted-color); font-weight: normal; }
-.scale-dialog { position: fixed; inset: 0; z-index: 5; display: grid; place-items: start center; padding: min(5vh, 3rem) 1rem; background: rgb(0 0 0 / .45); pointer-events: none; }
-.scale-dialog article { width: min(42rem, 100%); pointer-events: auto; box-shadow: 0 1rem 3rem rgb(0 0 0 / .3); }

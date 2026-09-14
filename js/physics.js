@@ -1,4 +1,10 @@
 (() => {
+function rescalePositions(samples, scale) {
+  if (!samples.length) return [];
+  const origin = samples[0];
+  return samples.map((sample) => ({ ...sample, x: (sample.px - origin.px) * scale, y: -(sample.py - origin.py) * scale }));
+}
+
 function deriveMotion(positions) {
   const velocity = [];
   for (let i = 0; i < positions.length - 1; i += 1) {
@@ -25,5 +31,5 @@ function deriveEnergy(velocity, mass) {
   });
 }
 
-window.T2G = { ...(window.T2G ?? {}), deriveMotion, deriveEnergy };
+window.T2G = { ...(window.T2G ?? {}), rescalePositions, deriveMotion, deriveEnergy };
 })();

@@ -36,6 +36,14 @@
           <button id="graph-tab" type="button" aria-selected="false" hidden>Graph</button>
         </nav>
         <section id="track-panel">
+          <article id="scale-card">
+            <h2>Scale</h2>
+            <p>Set or revise the reference distance at any time. Existing tracking is rescaled; it is not discarded.</p>
+            <div class="grid"><label>Known length<input id="scale-length" type="number" min="0" step="any" placeholder="e.g. 50" /></label><label>Unit<select id="scale-unit"><option value="m">m</option><option value="cm" selected>cm</option><option value="mm">mm</option></select></label></div>
+            <button id="set-scale" type="button">Select scale points</button>
+            <button id="confirm-scale" type="button" disabled>Apply scale</button>
+            <p id="scale-status" class="status">Select two reference endpoints to set the scale.</p>
+          </article>
           <article>
             <h2>Track</h2>
             <p>Use the video controls to find the interval you want to analyze, then capture its beginning and end.</p>
@@ -68,15 +76,5 @@
       </section>
       <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No regression or smoothing is applied.</p></details>
     </main>
-    <aside id="scale-dialog" class="scale-dialog" role="dialog" aria-labelledby="scale-heading" hidden>
-      <article>
-        <h2 id="scale-heading">Set the scale first</h2>
-        <p>This unlocks the Track workspace. Choose a reference frame with the video controls, then select the endpoints of a known distance.</p>
-        <div class="grid"><label>Known length<input id="scale-length" type="number" min="0" step="any" placeholder="e.g. 50" /></label><label>Unit<select id="scale-unit"><option value="m">m</option><option value="cm" selected>cm</option><option value="mm">mm</option></select></label></div>
-        <button id="set-scale" type="button">Select scale points</button>
-        <button id="confirm-scale" type="button" disabled>Confirm scale</button>
-        <p id="scale-status" class="status"></p>
-      </article>
-    </aside>
   </body>
 </html>

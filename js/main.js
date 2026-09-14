@@ -1,5 +1,5 @@
 (() => {
-const { Stage, state, clearScale, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
+const { Stage, state, clearTracking, loadVideo, canvasPoint, waitForSeek, trackTemplate, rescalePositions, deriveEnergy, deriveMotion, renderEnergy, renderMotion, makeUI } = window.T2G;
 console.info('[T2G:App] boot', { href: location.href, cvType: typeof window.cv, t2gKeys: Object.keys(window.T2G) });
 
 const ui = makeUI();
@@ -9,6 +9,17 @@ let mode = null, dragStart = null, cancelRequested = false, motion = null;
 
 function setMode(next) { mode = next; e.overlay.classList.toggle('is-interactive', Boolean(next)); }
 function resetAnalysis() { motion = null; e.mass.value = ''; e['graph-status'].textContent = 'Finish tracking to see graphs.'; }
+function refreshScaledAnalysis() {
+  if (state.positions.length < 2 || !state.scale) return;
+  state.positions = rescalePositions(state.positions, state.scale);
+  motion = deriveMotion(state.positions);
+  if (state.positions.length < 3) return;
+  state.stage = Stage.GRAPH;
+  renderMotion(state.positions, motion.velocity, motion.acceleration);
+  const mass = Number(e.mass.value);
+  if (mass > 0) renderEnergy(deriveEnergy(motion.velocity, mass));
+  e['graph-status'].textContent = 'Graphs updated with the current scale.';
+}
 function showTab(name) {
   const graph = name === 'graph' && state.stage >= Stage.GRAPH;
   e['track-panel'].hidden = graph; e['graph-panel'].hidden = !graph;
@@ -41,12 +52,15 @@ e['video-file'].addEventListener('change', () => {
   e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded.`; e['scale-status'].textContent = 'Choose a reference frame, then select two endpoints.'; ui.refresh();
 });
 e.video.addEventListener('loadedmetadata', () => { console.info('[T2G:Video] metadata loaded', { duration: e.video.duration, width: e.video.videoWidth, height: e.video.videoHeight }); configureVideo(); ui.refresh(); });
-e['set-scale'].addEventListener('click', () => { clearScale(); resetAnalysis(); setMode('scale'); e['scale-status'].textContent = 'Click the first endpoint of the known distance.'; ui.refresh(); });
+e['set-scale'].addEventListener('click', () => { state.scalePoints = []; setMode('scale'); e['scale-status'].textContent = 'Click the first endpoint of the known distance.'; ui.refresh(); });
 e['scale-length'].addEventListener('input', ui.refresh);
 e['confirm-scale'].addEventListener('click', () => {
   const [a, b] = state.scalePoints, pixels = Math.hypot(b.x - a.x, b.y - a.y), meters = actualMeters();
   if (!(pixels > 0 && meters > 0)) return;
-  state.scale = meters / pixels; state.stage = Stage.TRACK; setMode(null); clearTracking(); resetAnalysis(); setRangeStatus(); e['track-status'].textContent = 'Choose an analysis interval, then select an ROI.'; ui.refresh();
+  state.scale = meters / pixels; if (state.stage < Stage.TRACK) state.stage = Stage.TRACK; setMode(null); refreshScaledAnalysis(); setRangeStatus();
+  e['scale-status'].textContent = `Scale applied: ${state.scale.toPrecision(5)} m per pixel.`;
+  e['track-status'].textContent = state.positions.length ? 'Existing tracking was rescaled.' : 'Choose an analysis interval, then select an ROI.';
+  ui.refresh();
 });
 e['set-start'].addEventListener('click', () => { e['analysis-start'].value = e.video.currentTime.toFixed(3); updateRange(); });
 e['set-end'].addEventListener('click', () => { e['analysis-end'].value = e.video.currentTime.toFixed(3); updateRange(); });
