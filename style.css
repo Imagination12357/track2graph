@@ -22,9 +22,12 @@ small { color: var(--pico-muted-color); font-weight: normal; }
 #graph-panel > article:first-of-type { container-type: inline-size; }
 @container (max-width: 42rem) { #position-analysis-layout { grid-template-columns: 1fr; } }
 @media (min-width: 64rem) {
-  #analysis-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
+  #analysis-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 2rem; align-items: start; }
   .video-stage { margin: 1rem auto 0; }
-  #workspace { min-width: 0; }
-  #track-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
-  #tracking-controls { display: grid; gap: 1rem; }
+  #workspace:not([hidden]) { display: contents; }
+  #track-panel { display: contents; }
+  #scale-card { grid-column: 2; grid-row: 1; }
+  #tracking-controls { display: contents; }
+  #track-panel > #tracking-controls > article:first-child { grid-column: 1; grid-row: 2; }
+  #track-panel > #tracking-controls > article:last-child { grid-column: 2; grid-row: 2; }
 }

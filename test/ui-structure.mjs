@@ -19,8 +19,9 @@ assert(html.includes('@techstark/opencv-js@4.10.0-release.1/dist/opencv.js'), 'O
 const analysisLayoutStart = html.indexOf('<div id="analysis-layout">');
 assert(analysisLayoutStart >= 0, 'video and workspace must share an analysis layout container');
 assert(html.indexOf('id="video-stage"', analysisLayoutStart) < html.indexOf('id="workspace"', analysisLayoutStart), 'wide analysis layout must place video before controls');
-assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);'), 'wide screens must use a 1:1 video-left controls-right layout');
-assert(css.includes('#track-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);'), 'wide Track panel must place scale beside Track and ROI controls');
+assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);'), 'wide screens must use a 3:2 video-left scale-right layout');
+assert(css.includes('#track-panel { display: contents; }') && css.includes('#scale-card { grid-column: 2; grid-row: 1; }') && css.includes('#tracking-controls { display: contents; }'), 'wide Track area must place Scale above ROI and Track beside ROI');
+assert(css.includes('#track-panel > #tracking-controls > article:first-child { grid-column: 1; grid-row: 2; }') && css.includes('#track-panel > #tracking-controls > article:last-child { grid-column: 2; grid-row: 2; }'), 'wide Track and ROI controls must use the 3:2 second row');
 assert(css.includes('#graph-panel > article:first-of-type { container-type: inline-size; }') && css.includes('@container (max-width: 42rem) { #position-analysis-layout { grid-template-columns: 1fr; } }'), 'position interpolation controls must stack when their card is narrow');
 
 for (const id of ['position-analysis-layout', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status']) {
