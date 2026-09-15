@@ -26,11 +26,12 @@
         <label for="video-file">Video file<input id="video-file" type="file" accept="video/*" /></label>
         <p id="video-status" class="status" aria-live="polite">Choose a video to begin.</p>
       </header>
-      <div class="video-stage" id="video-stage" hidden>
-        <video id="video" controls preload="metadata"></video>
-        <canvas id="overlay" aria-label="Video interaction overlay"></canvas>
-      </div>
-      <section id="workspace" hidden>
+      <div id="analysis-layout">
+        <div class="video-stage" id="video-stage" hidden>
+          <video id="video" controls preload="metadata"></video>
+          <canvas id="overlay" aria-label="Video interaction overlay"></canvas>
+        </div>
+        <section id="workspace" hidden>
         <nav class="tabs" aria-label="Workspace">
           <button id="track-tab" type="button" aria-selected="true">Track</button>
           <button id="graph-tab" type="button" aria-selected="false" hidden>Graph</button>
@@ -86,7 +87,8 @@
           <article><h2>Acceleration <small>(m/s²)</small></h2><canvas id="acceleration-chart"></canvas></article>
           <article><h2>Energy <small>(J)</small></h2><label for="mass">Mass (kg)<input id="mass" type="number" min="0" step="any" placeholder="Enter a positive mass" disabled /></label><canvas id="energy-chart"></canvas></article>
         </section>
-      </section>
+        </section>
+      </div>
       <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No interpolation, regression, or smoothing is applied unless interpolation is explicitly enabled.</p></details>
     </main>
   </body>

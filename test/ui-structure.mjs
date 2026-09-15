@@ -14,6 +14,10 @@ assert(/#overlay\s*\{[^}]*pointer-events:\s*none;/.test(css), 'overlay must pass
 assert(!html.includes('type="module"'), 'the app must not rely on ES modules under file URLs');
 assert(html.includes('./js/state.js') && html.includes('./js/main.js'), 'classic scripts must load the application in dependency order');
 assert(html.includes('@techstark/opencv-js@4.10.0-release.1/dist/opencv.js'), 'OpenCV must use the package browser bundle path');
+const analysisLayoutStart = html.indexOf('<div id="analysis-layout">');
+assert(analysisLayoutStart >= 0, 'video and workspace must share an analysis layout container');
+assert(html.indexOf('id="video-stage"', analysisLayoutStart) < html.indexOf('id="workspace"', analysisLayoutStart), 'wide analysis layout must place video before controls');
+assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 1fr);'), 'wide screens must use a video-left controls-right layout');
 
 for (const id of ['position-analysis-layout', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status']) {
   assert(html.includes(`id="${id}"`), `missing interpolation UI element: ${id}`);
