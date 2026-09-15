@@ -32,10 +32,6 @@
           <canvas id="overlay" aria-label="Video interaction overlay"></canvas>
         </div>
         <section id="workspace" hidden>
-        <nav class="tabs" aria-label="Workspace">
-          <button id="track-tab" type="button" aria-selected="true">Track</button>
-          <button id="graph-tab" type="button" aria-selected="false" hidden>Graph</button>
-        </nav>
         <section id="track-panel">
           <article id="scale-card">
             <h2>Scale</h2>
@@ -45,29 +41,33 @@
             <button id="confirm-scale" type="button" disabled>Apply scale</button>
             <p id="scale-status" class="status">Select two reference endpoints to set the scale.</p>
           </article>
-          <article>
-            <h2>Track</h2>
-            <p>Use the video controls to find the interval you want to analyze, then capture its beginning and end.</p>
-            <div class="grid range-controls">
-              <label>Start (s)<input id="analysis-start" type="number" min="0" step="any" /></label>
-              <label>End (s)<input id="analysis-end" type="number" min="0" step="any" /></label>
-            </div>
-            <div class="action-row">
-              <button id="set-start" type="button">Use current time as start</button>
-              <button id="set-end" type="button" class="secondary">Use current time as end</button>
-            </div>
-            <p id="range-status" class="status"></p>
-          </article>
-          <article>
-            <p>ROI is selected at the analysis start frame.</p>
-            <button id="select-roi" type="button">Select ROI at start</button>
-            <button id="start-tracking" type="button" disabled>Start tracking</button>
-            <button id="cancel-tracking" type="button" class="secondary" disabled>Cancel</button>
-            <progress id="tracking-progress" value="0" max="1" hidden></progress>
-            <p id="track-status" class="status">Choose an analysis interval, then select an ROI.</p>
-          </article>
+          <div id="tracking-controls">
+            <article>
+              <h2>Track</h2>
+              <p>Use the video controls to find the interval you want to analyze, then capture its beginning and end.</p>
+              <div class="grid range-controls">
+                <label>Start (s)<input id="analysis-start" type="number" min="0" step="any" /></label>
+                <label>End (s)<input id="analysis-end" type="number" min="0" step="any" /></label>
+              </div>
+              <div class="action-row">
+                <button id="set-start" type="button">Use current time as start</button>
+                <button id="set-end" type="button" class="secondary">Use current time as end</button>
+              </div>
+              <p id="range-status" class="status"></p>
+            </article>
+            <article>
+              <p>ROI is selected at the analysis start frame.</p>
+              <button id="select-roi" type="button">Select ROI at start</button>
+              <button id="start-tracking" type="button" disabled>Start tracking</button>
+              <button id="cancel-tracking" type="button" class="secondary" disabled>Cancel</button>
+              <progress id="tracking-progress" value="0" max="1" hidden></progress>
+              <p id="track-status" class="status">Choose an analysis interval, then select an ROI.</p>
+            </article>
+          </div>
         </section>
-        <section id="graph-panel" hidden aria-labelledby="graphs-heading">
+        </section>
+      </div>
+      <section id="graph-panel" hidden aria-labelledby="graphs-heading">
           <p id="graph-status" class="status">Finish tracking to see graphs.</p>
           <article>
             <div id="position-analysis-layout">
@@ -86,9 +86,7 @@
           <article><h2>Velocity <small>(m/s)</small></h2><canvas id="velocity-chart"></canvas></article>
           <article><h2>Acceleration <small>(m/s²)</small></h2><canvas id="acceleration-chart"></canvas></article>
           <article><h2>Energy <small>(J)</small></h2><label for="mass">Mass (kg)<input id="mass" type="number" min="0" step="any" placeholder="Enter a positive mass" disabled /></label><canvas id="energy-chart"></canvas></article>
-        </section>
-        </section>
-      </div>
+      </section>
       <details><summary>Analysis assumptions</summary><p>The camera is fixed, movement is approximately parallel to the image plane, perspective distortion is negligible, and downscreen is gravity. The first tracked point is the physical origin. No interpolation, regression, or smoothing is applied unless interpolation is explicitly enabled.</p></details>
     </main>
   </body>

@@ -34,11 +34,6 @@ function refreshScaledAnalysis() {
   state.positions = rescalePositions(state.positions, state.scale);
   refreshAnalysis();
 }
-function showTab(name) {
-  const graph = name === 'graph' && state.stage >= Stage.GRAPH;
-  e['track-panel'].hidden = graph; e['graph-panel'].hidden = !graph;
-  e['track-tab'].setAttribute('aria-selected', String(!graph)); e['graph-tab'].setAttribute('aria-selected', String(graph));
-}
 function configureVideo() {
   e.overlay.width = e.video.videoWidth; e.overlay.height = e.video.videoHeight;
   workCanvas.width = e.video.videoWidth; workCanvas.height = e.video.videoHeight;
@@ -56,13 +51,13 @@ function readRange() {
 }
 function updateRange() {
   const range = readRange(); if (!range) return false;
-  state.range = range; clearTracking(); resetAnalysis(); resetInterpolation(); showTab('track'); setRangeStatus(); ui.refresh(); return true;
+  state.range = range; clearTracking(); resetAnalysis(); resetInterpolation(); setRangeStatus(); ui.refresh(); return true;
 }
 async function seekTo(time) { e.video.pause(); if (Math.abs(e.video.currentTime - time) > .0001) { e.video.currentTime = time; await waitForSeek(e.video); } }
 
 e['video-file'].addEventListener('change', () => {
   const file = e['video-file'].files[0]; if (!file) return;
-  loadVideo(URL.createObjectURL(file)); resetAnalysis(); resetInterpolation(); setMode(null); showTab('track');
+  loadVideo(URL.createObjectURL(file)); resetAnalysis(); resetInterpolation(); setMode(null);
   e.video.src = state.videoUrl; e['video-status'].textContent = `${file.name} loaded.`; e['scale-status'].textContent = 'Choose a reference frame, then select two endpoints.'; ui.refresh();
 });
 e.video.addEventListener('loadedmetadata', () => { console.info('[T2G:Video] metadata loaded', { duration: e.video.duration, width: e.video.videoWidth, height: e.video.videoHeight }); configureVideo(); ui.refresh(); });
@@ -79,7 +74,6 @@ e['confirm-scale'].addEventListener('click', () => {
 e['set-start'].addEventListener('click', () => { e['analysis-start'].value = e.video.currentTime.toFixed(3); updateRange(); });
 e['set-end'].addEventListener('click', () => { e['analysis-end'].value = e.video.currentTime.toFixed(3); updateRange(); });
 e['analysis-start'].addEventListener('change', updateRange); e['analysis-end'].addEventListener('change', updateRange);
-e['track-tab'].addEventListener('click', () => showTab('track')); e['graph-tab'].addEventListener('click', () => showTab('graph'));
 e['select-roi'].addEventListener('click', async () => {
   if (!updateRange()) return;
   await seekTo(state.range.start); clearTracking(); resetAnalysis(); resetInterpolation(); setMode('roi'); e['track-status'].textContent = 'Draw a rectangle around the object at the analysis start frame.'; ui.refresh();
@@ -102,7 +96,7 @@ e['start-tracking'].addEventListener('click', async () => {
     await trackTemplate({ video: e.video, frameCanvas: workCanvas, roi: state.roi, startTime: state.range.start, endTime: state.range.end, cancelled: () => cancelRequested, onProgress: (v) => { e['tracking-progress'].value = v; }, onSample: ({ t, px, py, confidence }) => { if (confidence < .2) return; const first = state.positions[0] ?? { px, py }; state.positions.push({ t, px, py, x: (px - first.px) * state.scale, y: -(py - first.py) * state.scale }); ui.redraw(); } });
     if (cancelRequested) { e['track-status'].textContent = 'Tracking cancelled; result discarded.'; state.positions = []; }
     else if (state.positions.length < 3) { e['track-status'].textContent = 'Too few confident samples. Try a more distinctive, tighter ROI.'; }
-    else { refreshAnalysis(); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; showTab('graph'); }
+    else { refreshAnalysis(); e['track-status'].textContent = `${state.positions.length} position samples tracked.`; }
   } catch (error) { state.positions = []; e['track-status'].textContent = error.message; }
   finally { state.tracking = false; e['tracking-progress'].hidden = true; ui.refresh(); }
 });

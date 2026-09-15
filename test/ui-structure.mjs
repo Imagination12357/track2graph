@@ -10,6 +10,8 @@ assert(html.includes('id="track-panel"') && html.includes('id="scale-card"'), 's
 assert(!html.includes('id="scale-dialog"'), 'scale must not block the workspace in a dialog');
 assert(html.includes('id="analysis-start"') && html.includes('id="analysis-end"'), 'analysis range controls are required');
 assert(html.includes('id="track-panel"') && html.includes('id="graph-panel"'), 'separate track and graph panels are required');
+assert(!html.includes('class="tabs"') && !html.includes('id="track-tab"') && !html.includes('id="graph-tab"'), 'workspace tabs must be removed');
+assert(html.includes('id="tracking-controls"'), 'Track and ROI controls must share a tracking-control group');
 assert(/#overlay\s*\{[^}]*pointer-events:\s*none;/.test(css), 'overlay must pass through pointer events when selection is inactive');
 assert(!html.includes('type="module"'), 'the app must not rely on ES modules under file URLs');
 assert(html.includes('./js/state.js') && html.includes('./js/main.js'), 'classic scripts must load the application in dependency order');
@@ -17,7 +19,8 @@ assert(html.includes('@techstark/opencv-js@4.10.0-release.1/dist/opencv.js'), 'O
 const analysisLayoutStart = html.indexOf('<div id="analysis-layout">');
 assert(analysisLayoutStart >= 0, 'video and workspace must share an analysis layout container');
 assert(html.indexOf('id="video-stage"', analysisLayoutStart) < html.indexOf('id="workspace"', analysisLayoutStart), 'wide analysis layout must place video before controls');
-assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 3fr);'), 'wide screens must use a 2:3 video-left controls-right layout');
+assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);'), 'wide screens must use a 1:1 video-left controls-right layout');
+assert(css.includes('#track-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);'), 'wide Track panel must place scale beside Track and ROI controls');
 assert(css.includes('#graph-panel > article:first-of-type { container-type: inline-size; }') && css.includes('@container (max-width: 42rem) { #position-analysis-layout { grid-template-columns: 1fr; } }'), 'position interpolation controls must stack when their card is narrow');
 
 for (const id of ['position-analysis-layout', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status']) {
@@ -40,6 +43,9 @@ assert(positionDatasets.map((dataset) => dataset.label).join(',') === 'Interpola
 assert(positionDatasets[2].showLine === false && positionDatasets[2].pointRadius === 3, 'measured positions must be prominent unconnected points');
 
 const main = readFileSync(new URL('../js/main.js', import.meta.url), 'utf8');
+const ui = readFileSync(new URL('../js/ui.js', import.meta.url), 'utf8');
+assert(!main.includes('function showTab('), 'graph visibility must not depend on tab switching');
+assert(ui.includes("elements['graph-panel'].hidden = !hasGraph;"), 'graph panel must appear below Track after valid tracking');
 for (const fragment of [
   'function resetInterpolation()',
   'function refreshAnalysis()',

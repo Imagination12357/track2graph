@@ -3,7 +3,7 @@ const { Stage, state } = window.T2G;
 
 function makeUI() {
   const $ = (id) => document.getElementById(id);
-  const ids = ['video-file', 'video', 'overlay', 'video-stage', 'video-status', 'scale-card', 'scale-length', 'scale-unit', 'set-scale', 'confirm-scale', 'scale-status', 'workspace', 'track-tab', 'graph-tab', 'track-panel', 'graph-panel', 'analysis-start', 'analysis-end', 'set-start', 'set-end', 'range-status', 'select-roi', 'start-tracking', 'cancel-tracking', 'tracking-progress', 'track-status', 'graph-status', 'mass', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status'];
+  const ids = ['video-file', 'video', 'overlay', 'video-stage', 'video-status', 'scale-card', 'scale-length', 'scale-unit', 'set-scale', 'confirm-scale', 'scale-status', 'workspace', 'track-panel', 'graph-panel', 'analysis-start', 'analysis-end', 'set-start', 'set-end', 'range-status', 'select-roi', 'start-tracking', 'cancel-tracking', 'tracking-progress', 'track-status', 'graph-status', 'mass', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status'];
   const elements = Object.fromEntries(ids.map((id) => [id, $(id)]));
   const redraw = () => {
     const { overlay } = elements, ctx = overlay.getContext('2d'); ctx.clearRect(0, 0, overlay.width, overlay.height); ctx.lineWidth = 3;
@@ -18,7 +18,7 @@ function makeUI() {
     elements['select-roi'].disabled = !hasScale || state.tracking;
     elements['start-tracking'].disabled = !state.roi || state.tracking;
     elements['cancel-tracking'].disabled = !state.tracking;
-    elements['graph-tab'].hidden = !hasGraph;
+    elements['graph-panel'].hidden = !hasGraph;
     elements.mass.disabled = !hasGraph;
     elements['interpolation-enabled'].disabled = !hasGraph;
     elements['interpolation-points'].disabled = !hasGraph || !elements['interpolation-enabled'].checked;
