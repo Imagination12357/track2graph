@@ -17,7 +17,8 @@ assert(html.includes('@techstark/opencv-js@4.10.0-release.1/dist/opencv.js'), 'O
 const analysisLayoutStart = html.indexOf('<div id="analysis-layout">');
 assert(analysisLayoutStart >= 0, 'video and workspace must share an analysis layout container');
 assert(html.indexOf('id="video-stage"', analysisLayoutStart) < html.indexOf('id="workspace"', analysisLayoutStart), 'wide analysis layout must place video before controls');
-assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 1fr);'), 'wide screens must use a video-left controls-right layout');
+assert(css.includes('@media (min-width: 64rem)') && css.includes('#analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 3fr);'), 'wide screens must use a 2:3 video-left controls-right layout');
+assert(css.includes('#graph-panel > article:first-of-type { container-type: inline-size; }') && css.includes('@container (max-width: 42rem) { #position-analysis-layout { grid-template-columns: 1fr; } }'), 'position interpolation controls must stack when their card is narrow');
 
 for (const id of ['position-analysis-layout', 'interpolation-enabled', 'interpolation-points', 'interpolation-points-value', 'interpolation-status']) {
   assert(html.includes(`id="${id}"`), `missing interpolation UI element: ${id}`);

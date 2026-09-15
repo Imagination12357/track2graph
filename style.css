@@ -22,9 +22,10 @@ small { color: var(--pico-muted-color); font-weight: normal; }
 .interpolation-controls { padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); }
 .interpolation-controls h3 { margin-bottom: .75rem; }
 .interpolation-controls output { display: block; margin-top: .25rem; color: var(--pico-muted-color); }
-@media (max-width: 48rem) { #position-analysis-layout { grid-template-columns: 1fr; } }
+#graph-panel > article:first-of-type { container-type: inline-size; }
+@container (max-width: 42rem) { #position-analysis-layout { grid-template-columns: 1fr; } }
 @media (min-width: 64rem) {
-  #analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 1fr); gap: 2rem; align-items: start; }
+  #analysis-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(21rem, 3fr); gap: 2rem; align-items: start; }
   .video-stage { margin: 1rem auto 0; }
   #workspace { min-width: 0; }
 }
