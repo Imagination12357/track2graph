@@ -57,4 +57,9 @@ for (const fragment of [
   assert(main.includes(fragment), `missing interpolation lifecycle wiring: ${fragment}`);
 }
 
+assert(main.includes('roiStart = null'), 'ROI selection must retain a first click as a pending corner');
+assert(main.includes("Click the opposite corner or drag to draw the ROI."), 'ROI selection must explain the second-click path');
+assert(main.includes('dragStart = roiStart ?? point'), 'a second click must use the pending corner as the rectangle start');
+assert(main.includes('roiStart = start'), 'a click without a drag must become the pending ROI corner');
+
 console.log('UI structure checks: passed');
