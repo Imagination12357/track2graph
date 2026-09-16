@@ -11,7 +11,7 @@ const context = vm.createContext({
 vm.runInContext(readFileSync('js/tracker.js', 'utf8'), context, { filename: 'js/tracker.js' });
 
 const video = {
-  duration: 1, currentTime: 0, pause() { actions.push('pause'); }, play: async () => { actions.push('play'); },
+  duration: 1, currentTime: 0, playbackRate: 1.5, pause() { actions.push('pause'); }, play: async () => { actions.push('play'); },
   requestVideoFrameCallback(callback) { actions.push('request'); callbacks.push(callback); return callbacks.length; },
 };
 const samples = [];
@@ -21,6 +21,7 @@ const tracking = context.window.T2G.trackTemplate({
 });
 
 for (let i = 0; i < 5; i += 1) await Promise.resolve();
+if (video.playbackRate !== .25) throw new Error(`tracking must run at 0.25x speed, got ${video.playbackRate}`);
 if (callbacks.length !== 1) throw new Error('tracker must request the next decoded video frame');
 if (actions.join(',') !== 'pause,request,play') throw new Error(`expected playback before the first independent match, got ${actions.join(',')}`);
 if (samples.length !== 0) throw new Error(`expected no self-match sample before playback, got ${JSON.stringify(samples)}`);
@@ -35,4 +36,5 @@ callbacks.shift()(0, { mediaTime: .101 });
 await tracking;
 
 if (samples.length !== 2 || samples[0].t !== 0 || samples[1].t !== .033) throw new Error(`expected one sample per decoded frame after the initial advance, got ${JSON.stringify(samples)}`);
+if (video.playbackRate !== 1.5) throw new Error(`tracking must restore the original speed, got ${video.playbackRate}`);
 console.log('Tracker samples each decoded video frame once.');
