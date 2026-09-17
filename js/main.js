@@ -5,10 +5,10 @@ console.info('[T2G:App] boot', { href: location.href, cvType: typeof window.cv, 
 const ui = makeUI();
 const { elements: e } = ui;
 const workCanvas = document.createElement('canvas');
-let mode = null, dragStart = null, cancelRequested = false, motion = null;
+let mode = null, dragStart = null, roiStart = null, cancelRequested = false, motion = null;
 let interpolation = { enabled: false, points: 1 };
 
-function setMode(next) { mode = next; e.overlay.classList.toggle('is-interactive', Boolean(next)); }
+function setMode(next) { mode = next; if (next !== 'roi') roiStart = null; e.overlay.classList.toggle('is-interactive', Boolean(next)); }
 function resetAnalysis() { motion = null; e.mass.value = ''; e['graph-status'].textContent = 'Finish tracking to see graphs.'; }
 function resetInterpolation() {
   interpolation = { enabled: false, points: 1 };
@@ -76,16 +76,24 @@ e['set-end'].addEventListener('click', () => { e['analysis-end'].value = e.video
 e['analysis-start'].addEventListener('change', updateRange); e['analysis-end'].addEventListener('change', updateRange);
 e['select-roi'].addEventListener('click', async () => {
   if (!updateRange()) return;
-  await seekTo(state.range.start); clearTracking(); resetAnalysis(); resetInterpolation(); setMode('roi'); e['track-status'].textContent = 'Draw a rectangle around the object at the analysis start frame.'; ui.refresh();
+  await seekTo(state.range.start); clearTracking(); resetAnalysis(); resetInterpolation(); roiStart = null; setMode('roi'); e['track-status'].textContent = 'Click a corner, then click the opposite corner or drag to draw the ROI.'; ui.refresh();
 });
 e.overlay.addEventListener('pointerdown', (event) => {
   if (state.tracking || !mode) return;
   const point = canvasPoint(event, e.overlay);
   if (mode === 'scale') { state.scalePoints.push(point); if (state.scalePoints.length === 2) { setMode(null); e['scale-status'].textContent = 'Enter the known length and confirm the scale.'; } ui.refresh(); return; }
-  if (mode === 'roi') { dragStart = point; e.overlay.setPointerCapture(event.pointerId); }
+  if (mode === 'roi') { dragStart = roiStart ?? point; roiStart = null; e.overlay.setPointerCapture(event.pointerId); }
 });
 e.overlay.addEventListener('pointermove', (event) => { if (!dragStart) return; const point = canvasPoint(event, e.overlay); state.roi = { x: Math.min(dragStart.x, point.x), y: Math.min(dragStart.y, point.y), width: Math.abs(point.x - dragStart.x), height: Math.abs(point.y - dragStart.y) }; ui.redraw(); });
-e.overlay.addEventListener('pointerup', (event) => { if (!dragStart) return; e.overlay.releasePointerCapture(event.pointerId); dragStart = null; if (state.roi.width < 8 || state.roi.height < 8) state.roi = null; setMode(null); e['track-status'].textContent = state.roi ? 'ROI selected. Start tracking when ready.' : 'ROI was too small; select it again.'; ui.refresh(); });
+e.overlay.addEventListener('pointerup', (event) => {
+  if (!dragStart) return;
+  const start = dragStart, point = canvasPoint(event, e.overlay);
+  e.overlay.releasePointerCapture(event.pointerId); dragStart = null;
+  state.roi = { x: Math.min(start.x, point.x), y: Math.min(start.y, point.y), width: Math.abs(point.x - start.x), height: Math.abs(point.y - start.y) };
+  if (state.roi.width >= 8 && state.roi.height >= 8) { setMode(null); e['track-status'].textContent = 'ROI selected. Start tracking when ready.'; }
+  else { state.roi = null; roiStart = start; e['track-status'].textContent = 'Click the opposite corner or drag to draw the ROI.'; }
+  ui.refresh();
+});
 e['start-tracking'].addEventListener('click', async () => {
   const requestedRange = readRange();
   console.info('[T2G:Track] button clicked', { stage: state.stage, hasScale: Boolean(state.scale), hasRoi: Boolean(state.roi), tracking: state.tracking, requestedRange, storedRange: state.range, cvType: typeof window.cv });

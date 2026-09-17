@@ -52,6 +52,8 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
   initial.delete();
   let lastMediaTime = startTime;
   let firstSampleTime = null;
+  const previousPlaybackRate = video.playbackRate;
+  video.playbackRate = .25;
   try {
     if (!video.requestVideoFrameCallback) throw new Error('This browser does not provide decoded video frame callbacks.');
     await new Promise((resolve, reject) => {
@@ -95,7 +97,7 @@ async function trackTemplate({ video, frameCanvas, roi, startTime, endTime, onSa
       video.requestVideoFrameCallback(processFrame);
       resumeVideo();
     });
-  } finally { template.delete(); }
+  } finally { template.delete(); video.playbackRate = previousPlaybackRate; }
 }
 
 window.T2G = { ...(window.T2G ?? {}), trackTemplate };
